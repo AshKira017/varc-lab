@@ -591,8 +591,8 @@ main{padding:32px 36px;overflow-y:auto}
 <script>
 /* ── CONFIG ──────────────────────────────────────────────────────── */
 // Supabase — replace with your project details
-const SUPA_URL = 'https://cjbwpiojodcqpybhhbbp.supabase.co';
-const SUPA_KEY = 'sb_publishable_IMDpzWSB3geRSx0LxpyT0w_QFH6iAa6';
+const SUPA_URL = 'https://YOUR_PROJECT.supabase.co';
+const SUPA_KEY = 'your-anon-key-here';
 const SUPA_OK  = () => !SUPA_URL.includes('YOUR_PROJECT');
 
 /* ── QUESTION BANK ──────────────────────────────────────────────── */
@@ -769,29 +769,39 @@ async function loadHome() {
   document.getElementById('home-date').textContent =
     new Date().toLocaleDateString('en-IN',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
   
-  // Load progress from Supabase or localStorage
+  // Load progress from localStorage (primary) + merge Supabase (if available)
   let sessions = [];
+  try {
+    const raw = JSON.parse(localStorage.getItem('varc_sessions') || '[]');
+    sessions = (Array.isArray(raw) ? raw : []).filter(s => s && typeof s === 'object' && s.total_qs > 0).map(s => ({
+      mode: s.mode || 'practice',
+      score: typeof s.score === 'number' ? s.score : 0,
+      max_score: s.max_score || (s.total_qs || 0) * 3,
+      total_qs: s.total_qs || 0,
+      correct: s.correct || 0,
+      wrong: s.wrong || 0,
+      skipped: s.skipped || 0,
+      accuracy: s.accuracy != null ? s.accuracy : (s.correct && s.correct + s.wrong > 0 ? Math.round(s.correct / (s.correct + s.wrong) * 100) : 0),
+      time_used_sec: s.time_used_sec || 0,
+      marks_wasted: s.marks_wasted || 0,
+      created_at: s.created_at || new Date().toISOString(),
+      _results: s._results || [],
+    }));
+  } catch(e) { sessions = []; }
+  
+  // Optionally supplement with Supabase data (if configured and reachable)
   if (SUPA_OK()) {
-    sessions = await supaGet(`test_sessions?user_id=eq.${getUserId()}&order=created_at.desc&limit=50`);
-  } else {
     try {
-      const raw = JSON.parse(localStorage.getItem('varc_sessions') || '[]');
-      // Validate and normalize each session
-      sessions = raw.filter(s => s && typeof s === 'object' && s.total_qs > 0).map(s => ({
-        mode: s.mode || 'practice',
-        score: typeof s.score === 'number' ? s.score : 0,
-        max_score: s.max_score || (s.total_qs || 0) * 3,
-        total_qs: s.total_qs || 0,
-        correct: s.correct || 0,
-        wrong: s.wrong || 0,
-        skipped: s.skipped || 0,
-        accuracy: s.accuracy != null ? s.accuracy : (s.correct && s.correct + s.wrong > 0 ? Math.round(s.correct / (s.correct + s.wrong) * 100) : 0),
-        time_used_sec: s.time_used_sec || 0,
-        marks_wasted: s.marks_wasted || 0,
-        created_at: s.created_at || new Date().toISOString(),
-        _results: s._results || [],
-      }));
-    } catch(e) { sessions = []; }
+      const supaSessions = await supaGet(`test_sessions?user_id=eq.${getUserId()}&order=created_at.desc&limit=50`);
+      if (Array.isArray(supaSessions) && supaSessions.length) {
+        // Merge, dedupe by created_at
+        const existingKeys = new Set(sessions.map(s => s.created_at));
+        for (const ss of supaSessions) {
+          if (!existingKeys.has(ss.created_at)) sessions.push({...ss, _results: []});
+        }
+        sessions.sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+      }
+    } catch(e) { console.warn('Supabase fetch failed, using localStorage only'); }
   }
 
   const totalSessions = sessions.length;
@@ -1505,12 +1515,19 @@ function buildParaCompletion(text, options, qid, saved) {
     .replace(/___(\d+)___/g, ' <span class="blank-marker">($1)</span> ')
     .replace(/\s{2,}/g, ' ');
 
+  // For sentence-insertion questions, options are placeholder "Option 1/2/3/4" text.
+  // Replace with clean "Blank N — fits here" labels matching the paragraph pills.
+  const isSIPlaceholder = options && options.length && options.every(o => /^Option \d$/.test(String(o).trim()));
+  const displayOptions = isSIPlaceholder 
+    ? options.map((_, i) => `Blank (${i+1}) — place the sentence here`)
+    : options;
+
   return `${instruction ? `<div class="q-instruction">${esc(instruction)}</div>` : ''}
     <div class="pc-sentence-lbl">Given sentence</div>
     <div class="pc-sentence">${esc(sentText) || '<span style="color:var(--faint);font-style:italic">See paragraph below</span>'}</div>
     <div class="pc-sentence-lbl" style="margin-top:10px">Paragraph — choose which blank the sentence fits</div>
     <div class="pc-para">${renderedPara}</div>
-    ${buildMCQOptions(options, qid, saved)}`;
+    ${buildMCQOptions(displayOptions, qid, saved)}`;
 }
 
 /* ── Answer ──────────────────────────────────────────────────────── */
@@ -1716,36 +1733,40 @@ async function submitSession() {
 
   const r = { score, max_score: maxScore, correct, wrong, skipped, accuracy, avg_time: avgTime, results };
 
-  // Push to Supabase
+  // ALWAYS save to localStorage first (primary storage)
   try {
-    if (SUPA_OK()) {
-      await ensureUser();
-      const [session] = await supaPost('test_sessions', {
-        user_id: getUserId(), mode: S.type, score, max_score: maxScore,
-        total_qs: S.questions.length, correct, wrong, skipped, accuracy,
-        time_allotted_sec: S.secs + S.totalTime, time_used_sec: S.totalTime,
-        marks_wasted: wrong,
-      }) || [null];
-      if (session?.id) {
-        await supaPost('test_responses', results.map((res, i) => ({
-          session_id: session.id, question_id: S.questions[i].id,
-          question_type: TYPE_UNMAP[res.q_type] || res.q_type,
-          selected_answer: res.user_answer != null ? String(res.user_answer) : null,
-          correct_answer: String(res.correct_val), is_correct: res.is_correct,
-          is_skipped: res.is_skipped, time_spent_ms: (res.time_secs || 0) * 1000,
-        })));
-      }
-    } else {
-      // Save to localStorage as fallback
-      const sessions = JSON.parse(localStorage.getItem('varc_sessions') || '[]');
-      sessions.unshift({
-        mode: S.type, score, max_score: maxScore, total_qs: S.questions.length,
-        correct, wrong, skipped, accuracy, time_used_sec: S.totalTime,
-        marks_wasted: wrong, created_at: new Date().toISOString(), _results: results,
-      });
-      localStorage.setItem('varc_sessions', JSON.stringify(sessions.slice(0, 100)));
-    }
-  } catch(e) { console.error('Save failed:', e); }
+    const sessions = JSON.parse(localStorage.getItem('varc_sessions') || '[]');
+    sessions.unshift({
+      mode: S.type, score, max_score: maxScore, total_qs: S.questions.length,
+      correct, wrong, skipped, accuracy, time_used_sec: S.totalTime,
+      marks_wasted: wrong, created_at: new Date().toISOString(), _results: results,
+    });
+    localStorage.setItem('varc_sessions', JSON.stringify(sessions.slice(0, 100)));
+  } catch(e) { console.error('localStorage save failed:', e); }
+
+  // Best-effort sync to Supabase (don't block if it fails)
+  if (SUPA_OK()) {
+    (async () => {
+      try {
+        await ensureUser();
+        const [session] = await supaPost('test_sessions', {
+          user_id: getUserId(), mode: S.type, score, max_score: maxScore,
+          total_qs: S.questions.length, correct, wrong, skipped, accuracy,
+          time_allotted_sec: S.secs + S.totalTime, time_used_sec: S.totalTime,
+          marks_wasted: wrong,
+        }) || [null];
+        if (session?.id) {
+          await supaPost('test_responses', results.map((res, i) => ({
+            session_id: session.id, question_id: S.questions[i].id,
+            question_type: TYPE_UNMAP[res.q_type] || res.q_type,
+            selected_answer: res.user_answer != null ? String(res.user_answer) : null,
+            correct_answer: String(res.correct_val), is_correct: res.is_correct,
+            is_skipped: res.is_skipped, time_spent_ms: (res.time_secs || 0) * 1000,
+          })));
+        }
+      } catch(e) { console.warn('Supabase sync failed (session saved locally):', e); }
+    })();
+  }
 
   document.getElementById('session').classList.remove('on');
   document.body.style.overflow = '';
@@ -2413,15 +2434,41 @@ async function loadAnalytics() {
   if (!el) return;
   
   let sessions = [], responses = [];
+  // Always read from localStorage first
+  try {
+    const raw = JSON.parse(localStorage.getItem('varc_sessions') || '[]');
+    sessions = (Array.isArray(raw) ? raw : []).filter(s => s && typeof s === 'object' && s.total_qs > 0);
+    // Extract responses from stored _results
+    for (const s of sessions) {
+      if (s._results && Array.isArray(s._results)) {
+        for (const r of s._results) {
+          responses.push({
+            question_type: r.q_type === 'para_jumbles' ? 'para_jumble' 
+                         : r.q_type === 'para_summary' ? 'summary'
+                         : r.q_type === 'sentence_out_of_context' ? 'odd_one_out'
+                         : r.q_type,
+            is_correct: r.is_correct,
+            is_skipped: r.is_skipped,
+            time_spent_ms: (r.time_secs || 0) * 1000,
+          });
+        }
+      }
+    }
+  } catch(e) { sessions = []; responses = []; }
+  
+  // Optionally supplement with Supabase
   if (SUPA_OK()) {
-    const uid = getUserId();
-    sessions = await supaGet(`test_sessions?user_id=eq.${uid}&order=created_at.desc&limit=100`);
-    responses = await supaGet(`test_responses?select=*,test_sessions!inner(user_id)&test_sessions.user_id=eq.${uid}&limit=5000`);
-  } else {
     try {
-      const raw = JSON.parse(localStorage.getItem('varc_sessions') || '[]');
-      sessions = (Array.isArray(raw) ? raw : []).filter(s => s && typeof s === 'object' && s.total_qs > 0);
-    } catch(e) { sessions = []; }
+      const uid = getUserId();
+      const supaSessions = await supaGet(`test_sessions?user_id=eq.${uid}&order=created_at.desc&limit=100`);
+      const supaResponses = await supaGet(`test_responses?select=*,test_sessions!inner(user_id)&test_sessions.user_id=eq.${uid}&limit=5000`);
+      if (Array.isArray(supaSessions) && supaSessions.length) {
+        const exists = new Set(sessions.map(s => s.created_at));
+        for (const ss of supaSessions) if (!exists.has(ss.created_at)) sessions.push(ss);
+        sessions.sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+      }
+      if (Array.isArray(supaResponses)) responses = responses.concat(supaResponses);
+    } catch(e) { /* use localStorage only */ }
   }
 
   if (!sessions.length) {
@@ -2625,6 +2672,7 @@ async function init() {
   toast('Loading questions…');
   try {
     const r = await fetch('question_bank.json');
+    if (!r.ok) { toast('question_bank.json not found (' + r.status + ')'); console.error('Fetch failed:', r.status, r.statusText); return; }
     BANK = await r.json();
     const totalRc = BANK.rc_passages.reduce((s,p) => s + p.questions.length, 0);
     const totalVa = BANK.va_questions.length;
@@ -2645,8 +2693,8 @@ async function init() {
     if (tv) tv.textContent = totalVa + ' VA';
     toast('Ready — ' + (totalRc + totalVa) + ' questions loaded');
   } catch(e) {
-    toast('Failed to load question bank');
-    console.error(e);
+    toast('Failed to load questions — check console (F12)');
+    console.error('Question bank load error:', e);
   }
 }
 
