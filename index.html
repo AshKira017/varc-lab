@@ -339,6 +339,295 @@ main{padding:32px 36px;overflow-y:auto}
 
 /* divider */
 .sep{height:1px;background:var(--line);margin:20px 0}
+
+/* ═══════════════════════════════════════════════════════════════════
+   MOBILE — breakpoint 768px
+═══════════════════════════════════════════════════════════════════ */
+@media (max-width:768px) {
+  /* Shell: stack vertically */
+  .shell {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr auto;
+  }
+
+  /* Sidebar → bottom nav bar */
+  aside {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    top: auto;
+    height: auto;
+    width: 100%;
+    border-right: none;
+    border-top: 1px solid var(--line);
+    z-index: 90;
+    background: var(--bg1);
+  }
+  .logo { display: none; }
+  nav {
+    display: flex;
+    justify-content: space-around;
+    padding: 6px 0;
+    flex: none;
+  }
+  .nav-link {
+    flex-direction: column;
+    gap: 3px;
+    padding: 7px 10px;
+    font-size: 11px;
+    margin: 0;
+    text-align: center;
+    min-width: 64px;
+  }
+  .nav-link.on::before {
+    display: block;
+    width: 30px;
+    height: 2px;
+    left: 50%;
+    margin-left: -15px;
+    top: 2px;
+    border-radius: 2px;
+  }
+  .nav-link svg { width: 18px; height: 18px; }
+  .sidebar-foot { display: none; }
+
+  /* Main — full width, leave room for bottom nav */
+  main {
+    padding: 18px 14px 84px 14px; /* extra bottom padding for bottom nav */
+    min-height: 100vh;
+  }
+
+  /* Page title */
+  .pg-title { font-size: 22px; margin-bottom: 2px; }
+  .pg-title b { font-size: 20px; }
+  .pg-sub { font-size: 12px; margin-bottom: 16px; }
+
+  /* Stats row — 2 columns instead of 4 */
+  .stats-row {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .stat { padding: 12px 14px; }
+  .stat-v { font-size: 22px; }
+  .stat-l { font-size: 9px; }
+
+  /* Dashboard tiles — single column */
+  .dash-tiles {
+    grid-template-columns: 1fr !important;
+    gap: 10px;
+  }
+  .dash-tile { padding: 16px; }
+  .tile-name { font-size: 17px; }
+  .tile-desc { font-size: 12px; }
+  .tile-action { margin-top: 12px; }
+
+  /* Card grids */
+  .g2 { grid-template-columns: 1fr; gap: 10px; }
+  .g3 { grid-template-columns: 1fr; gap: 10px; }
+  .card { padding: 14px; }
+
+  /* Passage rows */
+  .passage-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 12px 14px;
+  }
+  .pr-src { min-width: 0; font-size: 9px; }
+  .pr-snip { font-size: 12px; line-height: 1.45; }
+  .pr-meta { width: 100%; justify-content: space-between; }
+
+  /* VA grid — 2 columns then 1 */
+  .va-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .va-card { padding: 14px; }
+  .va-count { font-size: 24px; }
+  .va-name { font-size: 12px; }
+  .va-desc { font-size: 10px; }
+
+  /* Filter pills row — wrap */
+  .filter-row { flex-wrap: wrap; }
+
+  /* ═════ SESSION OVERLAY ═════ */
+  /* Top bar — keep but shrink */
+  .sbar {
+    padding: 0 12px;
+    height: 44px;
+  }
+  .sbar-name { font-size: 12px; }
+  .sbar-src { display: none; } /* hide source tag on mobile, shown in passage header */
+  .sbar-left { gap: 8px; min-width: 0; flex-shrink: 1; overflow: hidden; }
+  .sbar-left .sbar-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  #sess-untimed { display: none !important; } /* hide badge, no room */
+  .sbar-right { gap: 6px; flex-shrink: 0; }
+  .timer { font-size: 14px; min-width: 38px; }
+  .pause-btn { width: 26px; height: 26px; }
+  .sbar-right .btn-sm { padding: 5px 9px; font-size: 11px; }
+
+  /* RC split → vertical stack */
+  .rc-split {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+  }
+  .passage-col {
+    border-right: none;
+    border-bottom: 1px solid var(--line);
+    padding: 18px 16px;
+    max-height: 45vh; /* passage takes top 45% of screen */
+  }
+  .q-col { padding: 16px; }
+
+  /* Passage body — smaller text */
+  .passage-body {
+    font-size: 14px;
+    line-height: 1.8;
+    max-width: 100%;
+  }
+  .passage-body p { margin-bottom: 1em; }
+
+  /* Question UI */
+  .q-text { font-size: 13.5px; line-height: 1.65; }
+  .q-instruction { font-size: 11px; padding: 8px 10px; }
+  .q-type { font-size: 9px; }
+  .options { gap: 6px; }
+  .opt {
+    padding: 10px 11px;
+    font-size: 13px;
+    line-height: 1.45;
+    min-height: 38px; /* bigger tap target */
+  }
+  .opt-n { width: 22px; height: 22px; font-size: 10px; }
+  .pc-sentence { font-size: 13px; padding: 10px 12px; }
+  .pc-para { font-size: 13px; line-height: 1.7; }
+  .sent-item { font-size: 12.5px; padding: 8px 10px; }
+  .sent-lbl { font-size: 10px; }
+
+  /* VA single-column layout */
+  .va-single { padding: 18px 14px; }
+
+  /* Bottom nav in session */
+  .qnav {
+    padding: 0 10px;
+    height: 44px;
+    gap: 6px;
+  }
+  .qnav-label { display: none; } /* save space */
+  .qnav-legend { display: none; }
+  .qdot {
+    width: 28px;
+    height: 28px;
+    font-size: 10px;
+    flex-shrink: 0;
+  }
+  .qnav .btn-sm {
+    padding: 5px 8px;
+    font-size: 10px;
+  }
+  .qnav .btn-ghost:has(+ .qnav-dots),
+  #qnav-prev, #qnav-flag, #qnav-clear {
+    padding: 5px 8px;
+    font-size: 10px;
+  }
+
+  /* Review panel */
+  .review-box {
+    padding: 20px 18px;
+    max-height: 85vh;
+  }
+  .review-box-title { font-size: 17px; }
+  .review-summary { grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+  .rsumm-cell { padding: 10px 4px; }
+  .rsumm-n { font-size: 20px; }
+  .rsumm-l { font-size: 9px; }
+  .rqdot { width: 30px; height: 30px; font-size: 10px; }
+  .review-legend { font-size: 10px; flex-direction: column; gap: 6px; }
+  .review-actions { flex-direction: column-reverse; gap: 8px; }
+  .review-actions .btn { width: 100%; justify-content: center; }
+
+  /* Results */
+  .result-wrap { padding: 18px 14px 90px 14px; }
+  .result-hero {
+    flex-direction: column;
+    gap: 16px;
+    padding: 20px 18px;
+  }
+  .r-score { font-size: 42px; }
+  .r-max { font-size: 14px; }
+  .r-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+  }
+  .r-sv { font-size: 16px; }
+  .r-sl { font-size: 9px; }
+  .r-acc { font-size: 32px; }
+
+  /* Timeline rows */
+  .tl-row { grid-template-columns: 30px 1fr 44px; gap: 6px; }
+  .tl-qn { font-size: 10px; }
+  .tl-bar-label { font-size: 9px; }
+  .tl-badge { font-size: 8px; padding: 0 4px; }
+
+  /* Review items */
+  .rev-item { padding: 11px 12px; }
+  .rev-q { font-size: 12px; }
+  .rev-ans { font-size: 11px; flex-direction: column; gap: 3px; }
+
+  /* Question expand modal */
+  .qexpand-overlay { padding: 10px; }
+  .qexpand-box {
+    max-height: 95vh;
+    border-radius: 12px;
+  }
+  .qexpand-head { padding: 14px 16px 12px; }
+  .qexpand-body { padding: 16px; }
+  .qexpand-qtext { font-size: 13px; }
+
+  /* Daily picker */
+  #daily-picker { padding: 18px 14px; }
+  #daily-picker > div { max-width: 100%; }
+
+  /* Toast */
+  .toast {
+    bottom: 80px; /* above bottom nav */
+    right: 10px;
+    left: 10px;
+    text-align: center;
+  }
+}
+
+/* Narrow mobile — phones under 420px */
+@media (max-width: 420px) {
+  .stats-row { grid-template-columns: 1fr 1fr; }
+  .va-grid { grid-template-columns: 1fr; }
+  .review-summary { grid-template-columns: 1fr; gap: 6px; }
+  .r-stats { grid-template-columns: 1fr 1fr; }
+  .passage-col { max-height: 40vh; }
+  .filter-row { gap: 4px; }
+  .filter-pill { padding: 4px 9px; font-size: 11px; }
+  /* Compact session top bar on tiny screens */
+  .sbar-left .sbar-name { font-size: 11px; }
+  .qnav .btn-gold { padding: 5px 7px; font-size: 9px; }
+}
+
+/* Landscape phones — allow more horizontal space */
+@media (max-width: 768px) and (orientation: landscape) {
+  .rc-split {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr;
+  }
+  .passage-col {
+    max-height: 100%;
+    border-right: 1px solid var(--line);
+    border-bottom: none;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -437,10 +726,15 @@ main{padding:32px 36px;overflow-y:auto}
   <div class="pg-title"><b>Practice</b></div>
   <div class="pg-sub">Pick a passage to read and answer, or drill a VA type.</div>
 
-  <!-- Mode tabs -->
-  <div class="filter-row" style="margin-bottom:20px">
+  <!-- Mode tabs + Untimed toggle -->
+  <div class="filter-row" style="margin-bottom:20px;align-items:center">
     <div class="filter-pill on" id="mode-rc" onclick="switchMode('rc',this)">Reading Comprehension</div>
     <div class="filter-pill" id="mode-va" onclick="switchMode('va',this)">Verbal Ability</div>
+    <div style="flex:1"></div>
+    <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:12px;color:var(--muted);user-select:none;padding:4px 11px;border-radius:20px;border:1px solid var(--line);background:var(--bg1);transition:all .12s" id="untimed-label">
+      <input type="checkbox" id="untimed-toggle" onchange="toggleUntimed(this)" style="margin:0;cursor:pointer;accent-color:var(--gold)">
+      <span>Untimed practice</span>
+    </label>
   </div>
 
   <!-- RC pane -->
@@ -495,6 +789,7 @@ main{padding:32px 36px;overflow-y:auto}
     <div class="sbar-left">
       <span class="sbar-name" id="sess-title">Practice</span>
       <span class="sbar-src" id="sess-src"></span>
+      <span id="sess-untimed" style="display:none;font-size:10px;font-weight:600;padding:2px 7px;border-radius:4px;background:rgba(201,150,74,.12);color:var(--gold);border:1px solid rgba(201,150,74,.25);text-transform:uppercase;letter-spacing:1px;font-family:'Geist Mono',monospace">∞ Untimed</span>
     </div>
     <div class="sbar-right">
       <div class="timer" id="sess-timer">—:——</div>
@@ -912,7 +1207,9 @@ async function startDaily() {
   const rng = seededRng(todayStr + 'varc_daily');
   const plan = getDailyPlan(today);
 
-  const passages = shuffle([...BANK.rc_passages], rng).slice(0, plan.rc);
+  // Daily rotation uses only passages with 3+ questions (better practice sessions)
+  const dailyPool = BANK.rc_passages.filter(p => p.questions.length >= 3);
+  const passages = shuffle([...dailyPool], rng).slice(0, plan.rc);
   dailySections = [];
   passages.forEach((p, i) => {
     const qCount = p.questions.length;
@@ -1040,7 +1337,8 @@ async function startSectional() {
   if (!BANK) { toast('Questions still loading…'); return; }
   toast('Building sectional…');
   const rng = seededRng(Math.random().toString());
-  const passages = shuffle([...BANK.rc_passages], rng).slice(0, 4);
+  const sectPool = BANK.rc_passages.filter(p => p.questions.length >= 3);
+  const passages = shuffle([...sectPool], rng).slice(0, 4);
   const questions = [];
   const srcSet = new Set();
   for (const p of passages) {
@@ -1112,7 +1410,8 @@ async function openPassage(pid) {
   launchSession({
     questions: p.questions.map(q => normQ(q, p.passage, p.id, p.source)),
     title: `RC · ${pid}`, source: p.source, type: 'practice',
-    timeSecs: mins * 60,
+    timeSecs: UNTIMED_PRACTICE ? 0 : mins * 60,
+    untimed: UNTIMED_PRACTICE,
     passageId: pid, sessionId: uid(),
   });
 }
@@ -1145,7 +1444,9 @@ async function startVA(bankType) {
   const label = { para_jumble:'Para Jumble', summary:'Para Summary', odd_one_out:'Odd Sentence', para_completion:'Para Completion' }[bankType] || bankType;
   launchSession({
     questions, title: label, source: bankType, type: 'practice',
-    timeSecs: questions.length * 3 * 60, passageId: null, sessionId: uid(),
+    timeSecs: UNTIMED_PRACTICE ? 0 : questions.length * 3 * 60,
+    untimed: UNTIMED_PRACTICE,
+    passageId: null, sessionId: uid(),
   });
 }
 
@@ -1156,14 +1457,35 @@ function switchMode(mode, el) {
   document.getElementById('pane-va').style.display = mode === 'va' ? '' : 'none';
 }
 
+// Untimed practice flag — when true, practice sessions launch with no timer
+let UNTIMED_PRACTICE = false;
+function toggleUntimed(el) {
+  UNTIMED_PRACTICE = !!el.checked;
+  const label = document.getElementById('untimed-label');
+  if (label) {
+    if (UNTIMED_PRACTICE) {
+      label.style.borderColor = 'var(--gold)';
+      label.style.color = 'var(--gold)';
+      label.style.background = 'rgba(201,150,74,.06)';
+    } else {
+      label.style.borderColor = 'var(--line)';
+      label.style.color = 'var(--muted)';
+      label.style.background = 'var(--bg1)';
+    }
+  }
+  toast(UNTIMED_PRACTICE ? 'Untimed practice ON — sessions have no clock.' : 'Untimed practice OFF.');
+}
+
 /* ════════════════════════════════════════════════════════════════════
    SESSION ENGINE
 ════════════════════════════════════════════════════════════════════ */
-function launchSession({questions, title, source, type, timeSecs, passageId, sessionId, _dailySecId}) {
+function launchSession({questions, title, source, type, timeSecs, untimed, passageId, sessionId, _dailySecId}) {
+  // Clear any leftover timers from a previous session
+  if (S.timer) clearInterval(S.timer);
   Object.assign(S, {
     active:true, questions, answers:{}, qTimes:{}, flagged:new Set(),
     cur:0, secs:timeSecs, timer:null, paused:false,
-    title, source, type, passageId,
+    title, source, type, passageId, untimed: !!untimed,
     sessionId: sessionId || uid(),
     startTime:Date.now(), qStart:Date.now(), totalTime:0,
     _dailySecId: _dailySecId || null,
@@ -1174,6 +1496,7 @@ function launchSession({questions, title, source, type, timeSecs, passageId, ses
 
   document.getElementById('sess-title').textContent = title;
   document.getElementById('sess-src').textContent   = source;
+  document.getElementById('sess-untimed').style.display = S.untimed ? '' : 'none';
   document.getElementById('session').classList.add('on');
   document.body.style.overflow = 'hidden';
 
@@ -1756,15 +2079,36 @@ function confirmSubmit() {
 /* ── Timer ────────────────────────────────────────────────────────── */
 function startTimer() {
   clearInterval(S.timer);
+  const el = document.getElementById('sess-timer');
+
+  if (S.untimed) {
+    // Untimed: show elapsed time ticking UP, no auto-submit
+    if (el) {
+      el.className = 'timer';
+      el.textContent = '00:00';
+      el.title = 'Untimed practice — no time limit';
+    }
+    S.timer = setInterval(() => {
+      if (S.paused) return;
+      S.totalTime++;
+      if (el) {
+        const m = String(Math.floor(S.totalTime/60)).padStart(2,'0');
+        const s = String(S.totalTime%60).padStart(2,'0');
+        el.textContent = `${m}:${s}`;
+      }
+    }, 1000);
+    return;
+  }
+
+  // Timed mode — countdown
   const updateTimerEl = () => {
     const m = String(Math.floor(S.secs/60)).padStart(2,'0');
     const s = String(S.secs%60).padStart(2,'0');
-    const el = document.getElementById('sess-timer');
     if (!el) return;
     el.textContent = `${m}:${s}`;
     el.className   = 'timer' + (S.secs < 120 ? ' warn' : '');
   };
-  updateTimerEl();   // immediate paint so "Reading" label clears
+  updateTimerEl();
   S.timer = setInterval(() => {
     if (S.paused) return;
     S.secs--; S.totalTime++;
