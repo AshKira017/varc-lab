@@ -778,16 +778,16 @@ async function loadHome() {
     const tagsEl = document.getElementById('daily-tile-tags');
     if (descEl && tagsEl) {
       if (plan.rc === 2) {
-        descEl.textContent = 'Two RC passages today. Mon–Fri is RC-heavy. VA returns on weekends.';
+        descEl.textContent = 'Two RC passages today (15 min each). Mon–Fri is RC-heavy. VA returns on weekends.';
         tagsEl.innerHTML =
           '<span class="tag tag-gold">2 RC</span>' +
-          '<span class="tag tag-default">~20 min</span>';
+          '<span class="tag tag-default">~30 min</span>';
       } else {
-        descEl.textContent = 'Weekend mix: one RC passage and one VA set.';
+        descEl.textContent = 'Weekend mix: one RC passage (15 min) plus a VA set (12 min).';
         tagsEl.innerHTML =
           '<span class="tag tag-gold">1 RC</span>' +
           '<span class="tag tag-blue">1 VA</span>' +
-          '<span class="tag tag-default">~25 min</span>';
+          '<span class="tag tag-default">~27 min</span>';
       }
     }
   } catch(e) { /* getDailyPlan not yet defined in some edge */ }
@@ -897,6 +897,13 @@ function getDailyPlan(date) {
   return isMixed ? { rc: 1, va: 1, label: 'Mixed day' } : { rc: 2, va: 0, label: 'RC day' };
 }
 
+// Time budget for ONE RC passage (in minutes).
+// CAT pattern: ~3 min per question including reading; cap at 15, floor at 8.
+// Shorter passages (fewer Qs) get proportionally less time.
+function rcTimeMinutes(qCount) {
+  return Math.min(15, Math.max(8, Math.round(qCount * 3)));
+}
+
 async function startDaily() {
   if (!BANK) { toast('Questions still loading…'); return; }
   toast('Building today\'s set…');
@@ -909,18 +916,14 @@ async function startDaily() {
   dailySections = [];
   passages.forEach((p, i) => {
     const qCount = p.questions.length;
-    // Reading budget: 5 min to read passage + 2 min per question
-    const readMin = 5;
-    const answerMin = qCount * 2;
-    const totalMin = readMin + answerMin;
+    const mins = rcTimeMinutes(qCount);
     dailySections.push({
       id: `rc${i+1}`,
       label: plan.rc > 1 ? `RC ${i+1}` : 'RC Passage',
       sublabel: p.source,
-      tag: `${qCount}Q · ${totalMin} min`,
+      tag: `${qCount}Q · ${mins} min`,
       questions: p.questions.map(q => normQ(q, p.passage, p.id, p.source)),
-      timeSecs: totalMin * 60,
-      readSecs: readMin * 60,
+      timeSecs: mins * 60,
       done: false,
     });
   });
@@ -937,7 +940,6 @@ async function startDaily() {
         tag: `${vaQs.length}Q · 12 min`,
         questions: vaQs,
         timeSecs: 12 * 60,
-        readSecs: 0,
         done: false,
       });
     }
@@ -991,7 +993,6 @@ function launchDailySection(secId) {
     source:     sec.sublabel,
     type:       'daily',
     timeSecs:   sec.timeSecs || 15 * 60,
-    readSecs:   sec.readSecs || 0,
     passageId:  null,
     sessionId:  dailyData.session_id + '_' + secId,
     _dailySecId: secId,
@@ -1107,13 +1108,11 @@ async function openPassage(pid) {
   const p = BANK.rc_passages.find(x => x.id === pid);
   if (!p) { toast('Passage not found'); return; }
   const qCount = p.questions.length;
-  const readMin = 5;
-  const answerMin = qCount * 2;
+  const mins = rcTimeMinutes(qCount);
   launchSession({
     questions: p.questions.map(q => normQ(q, p.passage, p.id, p.source)),
     title: `RC · ${pid}`, source: p.source, type: 'practice',
-    timeSecs: (readMin + answerMin) * 60,
-    readSecs: readMin * 60,
+    timeSecs: mins * 60,
     passageId: pid, sessionId: uid(),
   });
 }
@@ -1160,12 +1159,7 @@ function switchMode(mode, el) {
 /* ════════════════════════════════════════════════════════════════════
    SESSION ENGINE
 ════════════════════════════════════════════════════════════════════ */
-function launchSession({questions, title, source, type, timeSecs, readSecs, passageId, sessionId, _dailySecId}) {
-  // Detect if this is a single-passage RC session eligible for reading mode
-  const firstPass = questions[0] && questions[0]._passage;
-  const allSamePassage = firstPass && questions.every(q => q._passage === firstPass);
-  const useReadingMode = allSamePassage && (readSecs > 0);
-
+function launchSession({questions, title, source, type, timeSecs, passageId, sessionId, _dailySecId}) {
   Object.assign(S, {
     active:true, questions, answers:{}, qTimes:{}, flagged:new Set(),
     cur:0, secs:timeSecs, timer:null, paused:false,
@@ -1176,10 +1170,6 @@ function launchSession({questions, title, source, type, timeSecs, readSecs, pass
     qVisitOrder:[],    // [{qid, idx, t} ...] every nav event
     qVisitCount:{},    // {qid: N}
     qAnswerChanges:{}, // {qid: N}
-    readingMode: useReadingMode,
-    readSecs: readSecs || 0,
-    readSecsRemaining: readSecs || 0,
-    readingTimer: null,
   });
 
   document.getElementById('sess-title').textContent = title;
@@ -1194,87 +1184,6 @@ function launchSession({questions, title, source, type, timeSecs, readSecs, pass
     S.qVisitOrder.push({ qid: firstQ.id, idx: 0, t: 0 });
     S.qVisitCount[firstQ.id] = 1;
   }
-
-  if (useReadingMode) {
-    enterReadingMode();
-  } else {
-    renderQuestion(0);
-    startTimer();
-  }
-}
-
-/* ── Reading mode — show passage only with countdown ──────────── */
-function enterReadingMode() {
-  const q = S.questions[0];
-  const pass = q._passage;
-  const qCount = S.questions.length;
-
-  // Show reading view: full-width passage with big countdown + "Start answering" button
-  document.getElementById('sess-body').innerHTML = `
-    <div style="flex:1;overflow-y:auto;padding:40px 48px;display:flex;justify-content:center">
-      <div style="max-width:780px;width:100%">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-          <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--gold);font-weight:600;font-family:'Geist Mono',monospace">Reading Time</div>
-          <div style="display:flex;align-items:center;gap:10px">
-            <span id="read-timer" style="font-family:'Geist Mono',monospace;font-size:22px;font-weight:500;color:var(--gold)">—:——</span>
-            <button class="btn btn-gold btn-sm" onclick="exitReadingMode()">Start Answering →</button>
-          </div>
-        </div>
-        <div style="font-size:13px;color:var(--muted);margin-bottom:22px;padding:12px 14px;background:rgba(201,150,74,.05);border-radius:7px;border-left:2px solid rgba(201,150,74,.35);font-style:italic">
-          Read the passage below. You'll have ${Math.round(S.readSecs/60)} minutes before the ${qCount} question${qCount===1?'':'s'} appear. The reading timer auto-advances when it runs out.
-        </div>
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
-          <span style="font-family:'Geist Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--gold);font-weight:600">${q._source||'Passage'}</span>
-          <span style="flex:1;height:1px;background:var(--line)"></span>
-          <span style="font-size:10px;color:var(--faint);font-family:'Geist Mono',monospace;text-transform:uppercase;letter-spacing:1px">${qCount}Q</span>
-        </div>
-        <div class="passage-body">${passageHtml(pass)}</div>
-        <div style="text-align:center;margin-top:32px;padding-top:24px;border-top:1px solid var(--line)">
-          <button class="btn btn-gold btn-lg" onclick="exitReadingMode()">I'm ready — Start answering</button>
-        </div>
-      </div>
-    </div>`;
-
-  // Hide nav bar during reading
-  document.querySelector('.qnav').style.visibility = 'hidden';
-  // Hide main session timer (reading timer takes over)
-  document.getElementById('sess-timer').textContent = 'Reading';
-  document.getElementById('sess-timer').style.color = 'var(--gold)';
-
-  // Start reading countdown
-  startReadingTimer();
-}
-
-function startReadingTimer() {
-  clearInterval(S.readingTimer);
-  const updateRT = () => {
-    const m = String(Math.floor(S.readSecsRemaining/60)).padStart(2,'0');
-    const s = String(S.readSecsRemaining%60).padStart(2,'0');
-    const el = document.getElementById('read-timer');
-    if (el) el.textContent = `${m}:${s}`;
-  };
-  updateRT();
-  S.readingTimer = setInterval(() => {
-    if (S.paused) return;
-    S.readSecsRemaining--;
-    updateRT();
-    if (S.readSecsRemaining <= 0) {
-      exitReadingMode();
-    }
-  }, 1000);
-}
-
-function exitReadingMode() {
-  clearInterval(S.readingTimer);
-  S.readingMode = false;
-  // Deduct whatever reading time was USED from the main timer budget
-  const usedReadingSecs = S.readSecs - Math.max(0, S.readSecsRemaining);
-  S.secs = Math.max(60, S.secs - usedReadingSecs);
-  // Restore UI
-  document.querySelector('.qnav').style.visibility = '';
-  document.getElementById('sess-timer').style.color = '';
-  // Reset qStart so first question's timing is accurate
-  S.qStart = Date.now();
   renderQuestion(0);
   startTimer();
 }
@@ -1962,10 +1871,7 @@ async function submitSession() {
 function exitSession() {
   if (S.active && !confirm('Exit? Progress won\'t be saved.')) return;
   clearInterval(S.timer);
-  clearInterval(S.readingTimer);
   S.active = false;
-  S.readingMode = false;
-  document.querySelector('.qnav').style.visibility = '';
   document.getElementById('session').classList.remove('on');
   document.getElementById('veil').classList.remove('on');
   document.body.style.overflow = '';
