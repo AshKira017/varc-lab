@@ -1522,6 +1522,39 @@
       font-family: 'Geist Mono', monospace
     }
 
+    /* ── Passage block inside expand modal ── */
+    .qexp-passage {
+      margin-bottom: 16px;
+      border: 1px solid var(--line2);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .qexp-passage.hidden { display: none; }
+    .qexp-passage-lbl {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--gold);
+      font-weight: 600;
+      font-family: 'Geist Mono', monospace;
+      padding: 7px 14px 6px;
+      background: var(--bg2);
+      border-bottom: 1px solid var(--line2);
+    }
+    .qexp-passage-body {
+      max-height: 260px;
+      overflow-y: auto;
+      padding: 12px 14px;
+      font-size: 14px;
+      line-height: 1.75;
+    }
+    .qexp-passage-body p { margin: 0 0 10px; }
+    .qexp-passage-body p:last-child { margin-bottom: 0; }
+    .qexp-toggle-btn {
+      font-size: 11px !important;
+      padding: 3px 10px !important;
+      height: auto !important;
+    }
     .qexpand-explanation-text {
       font-size: 13px;
       color: var(--text);
@@ -2763,6 +2796,28 @@
       color: var(--gold);
       background: rgba(201, 150, 74, .08)
     }
+    /* ── Settings page ── */
+    .settings-section { margin-bottom: 28px; }
+    .settings-section-title {
+      font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px;
+      color: var(--muted); font-weight: 600; font-family: 'Geist Mono', monospace;
+      margin-bottom: 10px;
+    }
+    .settings-card {
+      background: var(--bg1); border: 1px solid var(--line);
+      border-radius: var(--r); overflow: hidden;
+    }
+    .settings-row {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 16px; padding: 16px;
+    }
+    .settings-label { font-size: 13px; font-weight: 500; margin-bottom: 4px; }
+    .settings-desc { font-size: 12px; color: var(--muted); line-height: 1.55; max-width: 420px; }
+    .settings-divider { height: 1px; background: var(--line); margin: 0 16px; }
+    .settings-value {
+      font-family: 'Geist Mono', monospace; font-size: 13px;
+      color: var(--gold); margin-top: 2px;
+    }
   </style>
 </head>
 
@@ -2809,13 +2864,17 @@
           </svg>
           <span>Error Log</span>
         </div>
+        <div class="nav-link" onclick="go('settings')">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+            <circle cx="8" cy="8" r="2.5"/>
+            <path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.05 3.05l1.41 1.41M11.54 11.54l1.41 1.41M3.05 12.95l1.41-1.41M11.54 4.46l1.41-1.41"/>
+          </svg>
+          <span>Settings</span>
+        </div>
       </nav>
       <div class="sidebar-foot">
         <div class="foot-row"><span>Passages</span><span class="foot-num" id="f-passages">—</span></div>
         <div class="foot-row"><span>Questions</span><span class="foot-num" id="f-questions">—</span></div>
-        <div class="foot-row" style="margin-top:8px"><span style="cursor:pointer;color:var(--muted);font-size:10px"
-            onclick="if(confirm('Clear all session history?')){localStorage.removeItem('varc_sessions');location.reload()}">Clear
-            history</span></div>
       </div>
     </aside>
 
@@ -2961,6 +3020,46 @@
         <div id="enote-list"></div>
       </div>
 
+      <div class="page" id="page-settings">
+        <div class="pg-title"><b>Settings</b></div>
+        <div class="pg-sub">Account and data management.</div>
+
+        <div class="settings-section">
+          <div class="settings-section-title">Account</div>
+          <div class="settings-card">
+            <div class="settings-row">
+              <div>
+                <div class="settings-label">Signed in as</div>
+                <div class="settings-value" id="settings-username">—</div>
+              </div>
+              <button class="btn btn-ghost btn-sm" onclick="changeUsername()">Change name</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <div class="settings-section-title">Data</div>
+          <div class="settings-card">
+            <div class="settings-row">
+              <div>
+                <div class="settings-label">Clear local history</div>
+                <div class="settings-desc">Removes session history stored in this browser only. Your Supabase data — bookmarks, error notes, and sessions synced from other devices — is untouched.</div>
+              </div>
+              <button class="btn btn-ghost btn-sm" onclick="clearLocalHistory()" style="white-space:nowrap;flex-shrink:0">Clear local</button>
+            </div>
+            <div class="settings-divider"></div>
+            <div class="settings-row">
+              <div>
+                <div class="settings-label" style="color:var(--red)">Reset all my data</div>
+                <div class="settings-desc">Permanently deletes all sessions, responses, bookmarks, and error notes for the current account from Supabase, and clears local history. Use this to clean up test/dummy accounts. Cannot be undone.</div>
+              </div>
+              <button class="btn btn-ghost btn-sm" onclick="resetAllData()"
+                style="color:var(--red);border-color:rgba(196,80,80,.3);white-space:nowrap;flex-shrink:0">Reset all</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </main>
   </div>
 
@@ -3093,6 +3192,7 @@
           <span class="qexpand-type" id="qexpand-type"></span>
           <span id="qexpand-verdict"></span>
         </div>
+        <span id="qexpand-pass-toggle"></span>
         <div class="qexpand-close" onclick="closeQExpand()">✕</div>
       </div>
       <div class="qexpand-body" id="qexpand-body"></div>
@@ -4542,11 +4642,54 @@
       }).join('');
     }
 
-    function openHistoricResult(idx) {
+    async function openHistoricResult(idx) {
       const s = window._recentSessions?.[idx];
       if (!s) return;
 
-      // If no per-question results stored, just show summary
+      // If no per-question results stored locally, try fetching from Supabase
+      if ((!s.results || !s.results.length) && SUPA_OK() && s.id && BANK) {
+        document.getElementById('result-insights').innerHTML = '<div class="spinner"></div>';
+        document.getElementById('result').classList.add('on');
+        try {
+          const responses = await supaGet(`test_responses?session_id=eq.${s.id}&order=created_at.asc`);
+          if (Array.isArray(responses) && responses.length) {
+            s.results = responses.map(resp => {
+              const qid = String(resp.question_id);
+              for (const p of BANK.rc_passages) {
+                const q = p.questions.find(q => String(q.id) === qid);
+                if (q) {
+                  const n = normQ(q, p.passage, p.id, p.source);
+                  return {
+                    id: n.id, q_type: n.q_type, text: n.text, full_text: n.text,
+                    options: n.options, sentences: n.sentences, format: n.format,
+                    correct_idx: n._correctIdx, correct_val: n._correctVal,
+                    explanation: n.explanation, _passId: n._passId, _source: n._source,
+                    user_answer: resp.selected_answer, is_correct: resp.is_correct,
+                    is_skipped: resp.is_skipped,
+                    time_secs: Math.round((resp.time_spent_ms || 0) / 1000),
+                  };
+                }
+              }
+              const vq = BANK.va_questions.find(q => String(q.id) === qid);
+              if (vq) {
+                const n = normQ(vq, null, null, vq.source || '');
+                return {
+                  id: n.id, q_type: n.q_type, text: n.text, full_text: n.text,
+                  options: n.options, sentences: n.sentences, format: n.format,
+                  correct_idx: n._correctIdx, correct_val: n._correctVal,
+                  explanation: n.explanation, _passId: null, _source: n._source,
+                  user_answer: resp.selected_answer, is_correct: resp.is_correct,
+                  is_skipped: resp.is_skipped,
+                  time_secs: Math.round((resp.time_spent_ms || 0) / 1000),
+                };
+              }
+              return null;
+            }).filter(Boolean);
+          }
+        } catch (e) { console.warn('Could not fetch session responses:', e); }
+      }
+
+      // Still no results — show summary only
       if (!s.results || !s.results.length) {
         const el = document.getElementById('result-hero');
         renderResultHero(s, el, `${s.title || typeLabel(s.type) || 'Session'} · ${(s.date || '').slice(0, 10)}`);
@@ -4890,6 +5033,29 @@
       // ── Body ──────────────────────────────────────────────────────────
       let bodyHTML = '';
 
+      // ── Passage block (RC only, default visible) ──────────────────────
+      const isRC = res.q_type === 'rc';
+      let _passageText = '';
+      if (isRC && res._passId && BANK) {
+        const _p = BANK.rc_passages.find(x => String(x.id) === String(res._passId));
+        if (_p && _p.passage) _passageText = _p.passage;
+      }
+      if (isRC && _passageText) {
+        bodyHTML += `<div class="qexp-passage" id="qexp-passage-block">
+          <div class="qexp-passage-lbl">Passage${res._source ? ' · ' + esc(res._source) : ''}</div>
+          <div class="passage-body qexp-passage-body">${passageHtml(_passageText)}</div>
+        </div>`;
+      }
+      // Toggle button: show for RC with passage, hide otherwise
+      const _toggleWrap = document.getElementById('qexpand-pass-toggle');
+      if (_toggleWrap) {
+        if (isRC && _passageText) {
+          _toggleWrap.innerHTML = `<button class="btn btn-ghost btn-sm qexp-toggle-btn" onclick="toggleQExpandPassage(this)">Hide passage</button>`;
+        } else {
+          _toggleWrap.innerHTML = '';
+        }
+      }
+
       // Question text / sentences
       const isPJ = res.q_type === 'para_jumbles';
       const isOOC = res.q_type === 'sentence_out_of_context' || res.q_type === 'odd_sentence';
@@ -5089,6 +5255,12 @@
     function closeQExpand(e) {
       if (e && e.target !== document.getElementById('qexpand-overlay')) return;
       document.getElementById('qexpand-overlay').classList.remove('on');
+    }
+    function toggleQExpandPassage(btn) {
+      const block = document.getElementById('qexp-passage-block');
+      if (!block) return;
+      const nowHidden = block.classList.toggle('hidden');
+      btn.textContent = nowHidden ? 'Show passage' : 'Hide passage';
     }
 
     /* ── UTILITIES ────────────────────────────────────────────────────── */
@@ -5807,7 +5979,7 @@
           <button class="btn btn-ghost btn-sm" onclick="viewErrorNoteQ('${encodeURIComponent(String(r.question_id))}')">View Q</button>
         </div>
       </div>
-      <div class="enote-q">${esc((q.text || '').slice(0, 300))}${(q.text || '').length > 300 ? '…' : ''}</div>
+      <div class="enote-q">${esc(q.text || '')}</div>
       <div class="enote-grid">
         <dt>Your answer</dt><dd style="color:${myIsWrong ? 'var(--red)' : 'var(--muted)'}">${esc(myText)}</dd>
         <dt>Correct</dt><dd style="color:var(--green)">${esc(correctText)}</dd>
@@ -5883,7 +6055,7 @@
     // ── Extend go() for new pages ─────────────────────────────────────
     const _origGo = window.go;
     window.go = function (page) {
-      if (page === 'bookmarks' || page === 'errorlog') {
+      if (page === 'bookmarks' || page === 'errorlog' || page === 'settings') {
         document.querySelectorAll('.page').forEach(p => p.classList.remove('on'));
         document.querySelectorAll('.nav-link').forEach(n => n.classList.remove('on'));
         document.getElementById('page-' + page).classList.add('on');
@@ -5892,6 +6064,7 @@
         });
         if (page === 'bookmarks') renderBookmarks();
         if (page === 'errorlog') renderErrorLog();
+        if (page === 'settings') loadSettings();
         return;
       }
       return _origGo.apply(this, arguments);
@@ -5931,6 +6104,59 @@
       injectBmPills();
       console.log('[bookmarks+errorlog] Loaded.', { bookmarks: BM.rows.length, notes: EN.rows.length });
     })();
+
+    // ── Settings ──────────────────────────────────────────────────────
+    function loadSettings() {
+      const el = document.getElementById('settings-username');
+      if (el) el.textContent = getCurrentUser();
+    }
+
+    function changeUsername() {
+      const current = getCurrentUser();
+      const name = prompt('Enter new name:', current);
+      if (!name || !name.trim() || name.trim() === current) return;
+      localStorage.setItem('varc_user', name.trim());
+      toast('Name updated — reloading…');
+      setTimeout(() => location.reload(), 900);
+    }
+
+    function clearLocalHistory() {
+      if (!confirm(
+        'Clear session history from this browser?\n\n' +
+        'Your Supabase data (bookmarks, error notes, synced sessions) is not affected.'
+      )) return;
+      localStorage.removeItem('varc_sessions');
+      toast('Local history cleared');
+    }
+
+    async function resetAllData() {
+      const user = getCurrentUser();
+      const uid = getUserId();
+      if (!confirm(
+        `Reset ALL data for "${user}"?\n\n` +
+        'This will permanently delete:\n' +
+        '  • All sessions and responses\n' +
+        '  • All bookmarks\n' +
+        '  • All error notes\n\n' +
+        'Cannot be undone.'
+      )) return;
+      toast('Resetting…');
+      try {
+        if (SUPA_OK()) {
+          await Promise.all([
+            supaDelete(`test_sessions?user_id=eq.${uid}`),
+            supaDelete(`bookmarks?user_id=eq.${uid}`),
+            supaDelete(`error_notes?user_id=eq.${uid}`),
+          ]);
+        }
+        localStorage.removeItem('varc_sessions');
+        toast('All data cleared — reloading…');
+        setTimeout(() => location.reload(), 900);
+      } catch (e) {
+        console.error('Reset failed:', e);
+        toast('Reset failed — check console');
+      }
+    }
 
   </script>
 </body>
